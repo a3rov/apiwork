@@ -1,47 +1,56 @@
-import sys
-from io import BytesIO
-# Этот класс поможет нам сделать картинку из потока байт
-
+import os
+import pygame
 import requests
-from PIL import Image
-
-spn = str(input())
-
-# Пусть наше приложение предполагает запуск:
-# python search.py Москва, ул. Ак. Королева, 12
-# Тогда запрос к геокодеру формируется следующим образом:
-toponym_to_find = " ".join(sys.argv[1:])
-
-geocoder_api_server = "http://geocode-maps.yandex.ru/1.x/"
-
-geocoder_params = {
-    "apikey": "40d1649f-0493-4b70-98ba-98533de7710b",
-    "geocode": toponym_to_find,
-    "format": "json"}
-
-response = requests.get(geocoder_api_server, params=geocoder_params)
-
-# Преобразуем ответ в json-объект
-json_response = response.json()
-# Получаем первый топоним из ответа геокодера.
-toponym = json_response["response"]["GeoObjectCollection"][
-    "featureMember"][0]["GeoObject"]
-# Координаты центра топонима:
-toponym_coodrinates = toponym["Point"]["pos"]
-# Долгота и широта:
-toponym_longitude, toponym_lattitude = toponym_coodrinates.split(" ")
 
 
-map_params = {
-    "ll": ",".join([toponym_longitude, toponym_lattitude]),
-    "spn": ",".join([spn, spn]),
-    "l": "map",
-    "pt": f"{toponym_coodrinates.split()[0]},{toponym_coodrinates.split()[1]},pm2dgl"
-}
+def get_map(adress, delta=0.05):
+    cords = get_cords(adress)
+    return get_picture(cords, delta)
 
-map_api_server = "http://static-maps.yandex.ru/1.x/"
-# ... и выполняем запрос
-response = requests.get(map_api_server, params=map_params)
 
-Image.open(BytesIO(
-    response.content)).show()
+def get_picture(centre, delta):
+    map_api_server = "http://static-maps.yandex.ru/1.x/"
+
+    map_params = {
+        "ll": centre,
+        "spn": ",".join([str(delta), str(delta)]),
+        "l": "map",
+    }
+
+    return requests.get(map_api_server, params=map_params)
+
+
+def get_cords(toponym):
+    geocoder_api_server = "http://geocode-maps.yandex.ru/1.x/"
+
+    geocoder_params = {
+        "apikey": "40d1649f-0493-4b70-98ba-98533de7710b",
+        "geocode": toponym,
+        "format": "json"}
+
+    response = requests.get(geocoder_api_server, params=geocoder_params)
+    json_response = response.json()
+
+    toponym = json_response["response"]["GeoObjectCollection"]["featureMember"][0]["GeoObject"]
+    toponym_coodrinates = toponym["Point"]["pos"]
+    toponym_longitude, toponym_lattitude = toponym_coodrinates.split()
+
+    return ','.join([str(toponym_longitude), str(toponym_lattitude)])
+
+
+if __name__ == '__main__':
+    response = get_map('Казань')
+
+    map_file = "data/map.png"
+    with open(map_file, "wb") as file:
+        file.write(response.content)
+
+    pygame.init()
+    screen = pygame.display.set_mode((600, 450))
+    screen.blit(pygame.image.load(map_file), (0, 0))
+    pygame.display.flip()
+    while pygame.event.wait().type != pygame.QUIT:
+        pass
+    pygame.quit()
+
+    os.remove(map_file)
