@@ -5,6 +5,8 @@ import requests
 delta = '0.05'
 map_file = "data/map.png"
 clock = pygame.time.Clock()
+move_x = 0
+move_y = 0
 
 
 def get_map(adress):
@@ -13,6 +15,8 @@ def get_map(adress):
 
     with open(map_file, "wb") as file:
         file.write(response.content)
+
+    return pygame.image.load(map_file)
 
 
 def get_picture(centre, delta):
@@ -42,7 +46,7 @@ def get_cords(toponym):
     toponym_coodrinates = toponym["Point"]["pos"]
     toponym_longitude, toponym_lattitude = toponym_coodrinates.split()
 
-    return ','.join([str(toponym_longitude), str(toponym_lattitude)])
+    return ','.join([str(float(toponym_longitude) + move_x * float(delta) * 10), str(float(toponym_lattitude) + move_y * float(delta) * 10)])
 
 
 if __name__ == '__main__':
@@ -52,29 +56,39 @@ if __name__ == '__main__':
     screen = pygame.display.set_mode((600, 450))
     running = True
     image = pygame.image.load(map_file)
+    screen.blit(image, (0, 0))
 
     while running:
-        screen.fill((0, 0, 0))
-        screen.blit(image, (0, 0))
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
 
             if event.type == pygame.KEYDOWN:
                 key = event.key
+                if key == pygame.K_PAGEUP:
+                    if float(delta) < 32:
+                        delta = str(float(delta) * 1.5)
+
+                if key == pygame.K_PAGEDOWN:
+                    if float(delta) > 0.0001:
+                        delta = str(float(delta) / 1.5)
+
                 if key == pygame.K_UP:
-                    delta = str(float(delta) * 1.5)
-                    get_map('Казань')
-                    image = pygame.image.load(map_file)
+                    move_y += 0.05
 
                 if key == pygame.K_DOWN:
-                    delta = str(float(delta) / 1.5)
-                    get_map('Казань')
-                    image = pygame.image.load(map_file)
+                    move_y -= 0.05
+
+                if key == pygame.K_RIGHT:
+                    move_x += 0.05
+
+                if key == pygame.K_LEFT:
+                    move_x -= 0.05
+
+                image = get_map('Казань')
+                screen.blit(image, (0, 0))
 
         pygame.display.flip()
-
-        clock.tick(60)
 
     pygame.quit()
     os.remove(map_file)
