@@ -4,9 +4,14 @@ import requests
 
 delta = '0.05'
 map_file = "data/map.png"
+
 clock = pygame.time.Clock()
+
 move_x = 0
 move_y = 0
+
+type_map = 0
+maps = ['map', 'sat', 'skl']
 
 
 def get_map(adress):
@@ -25,7 +30,7 @@ def get_picture(centre, delta):
     map_params = {
         "ll": centre,
         "spn": ",".join([str(delta), str(delta)]),
-        "l": "map",
+        "l": maps[type_map]
     }
 
     return requests.get(map_api_server, params=map_params)
@@ -47,6 +52,14 @@ def get_cords(toponym):
     toponym_longitude, toponym_lattitude = toponym_coodrinates.split()
 
     return ','.join([str(float(toponym_longitude) + move_x * float(delta) * 10), str(float(toponym_lattitude) + move_y * float(delta) * 10)])
+
+
+def change_map():
+    global type_map
+    if type_map == len(maps) - 1:
+        type_map = 0
+    else:
+        type_map += 1
 
 
 if __name__ == '__main__':
@@ -85,7 +98,11 @@ if __name__ == '__main__':
                 if key == pygame.K_LEFT:
                     move_x -= 0.05
 
+                if key == pygame.K_1:
+                    change_map()
+
                 image = get_map('Казань')
+                screen.fill((0, 0, 0))
                 screen.blit(image, (0, 0))
 
         pygame.display.flip()
