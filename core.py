@@ -2,10 +2,17 @@ import os
 import pygame
 import requests
 
+delta = '0.05'
+map_file = "data/map.png"
+clock = pygame.time.Clock()
 
-def get_map(adress, delta=0.05):
+
+def get_map(adress):
     cords = get_cords(adress)
-    return get_picture(cords, delta)
+    response = get_picture(cords, delta)
+
+    with open(map_file, "wb") as file:
+        file.write(response.content)
 
 
 def get_picture(centre, delta):
@@ -39,18 +46,35 @@ def get_cords(toponym):
 
 
 if __name__ == '__main__':
-    response = get_map('Казань')
-
-    map_file = "data/map.png"
-    with open(map_file, "wb") as file:
-        file.write(response.content)
+    get_map('Казань')
 
     pygame.init()
     screen = pygame.display.set_mode((600, 450))
-    screen.blit(pygame.image.load(map_file), (0, 0))
-    pygame.display.flip()
-    while pygame.event.wait().type != pygame.QUIT:
-        pass
-    pygame.quit()
+    running = True
+    image = pygame.image.load(map_file)
 
+    while running:
+        screen.fill((0, 0, 0))
+        screen.blit(image, (0, 0))
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+
+            if event.type == pygame.KEYDOWN:
+                key = event.key
+                if key == pygame.K_UP:
+                    delta = str(float(delta) * 1.5)
+                    get_map('Казань')
+                    image = pygame.image.load(map_file)
+
+                if key == pygame.K_DOWN:
+                    delta = str(float(delta) / 1.5)
+                    get_map('Казань')
+                    image = pygame.image.load(map_file)
+
+        pygame.display.flip()
+
+        clock.tick(60)
+
+    pygame.quit()
     os.remove(map_file)
